@@ -1,7 +1,8 @@
 // /api/create-checkout-session.js
 // Stripe 決済セッションを作成し、決済ページ URL を返す API
 
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

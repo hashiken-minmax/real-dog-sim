@@ -1,7 +1,7 @@
 // /api/get-gold-balance.js
 // ゴールド所持数を取得する API
 
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
