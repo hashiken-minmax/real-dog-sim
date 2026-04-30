@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Image } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, ImageBackground } from 'react-native';
+import { tapMedium } from '../utils/haptics';
 
 const COLORS = {
   bg: '#0a2a0a',
@@ -13,7 +13,7 @@ const COLORS = {
 
 function MenuButton({ title, onPress }) {
   const handlePress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    tapMedium();
     onPress();
   };
   return (
@@ -25,32 +25,44 @@ function MenuButton({ title, onPress }) {
 
 export default function TitleScreen({ navigation }) {
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
-      <View style={styles.header}>
-        <Text style={styles.titleJa}>麻雀点数計算</Text>
-        <Text style={styles.titleSub}>練習アプリ</Text>
-        <Text style={styles.tileDecor}>🀇🀙🀐🀄</Text>
+    <ImageBackground
+      source={require('../../image/top_image_0.png')}
+      style={styles.background}
+      imageStyle={styles.backgroundImage}
+    >
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <View style={styles.header}>
+          <Text style={styles.titleJa}>麻雀点数計算</Text>
+          <Text style={styles.titleSub}>練習アプリ</Text>
+          <Text style={styles.tileDecor}>🀇🀙🀐🀄</Text>
+        </View>
+        <View style={styles.menu}>
+          <MenuButton
+            title="▶  ゲームを遊ぶ"
+            onPress={() => navigation.navigate('GameMode')}
+          />
+          <MenuButton
+            title="🏆  実績"
+            onPress={() => navigation.navigate('Achievement')}
+          />
+        </View>
+        <Text style={styles.footer}>符・飜の計算をマスターしよう</Text>
       </View>
-      <View style={styles.menu}>
-        <MenuButton
-          title="▶  ゲームを遊ぶ"
-          onPress={() => navigation.navigate('GameMode')}
-        />
-        <MenuButton
-          title="🏆  実績"
-          onPress={() => navigation.navigate('Achievement')}
-        />
-      </View>
-      <Text style={styles.footer}>符・飜の計算をマスターしよう</Text>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
+  backgroundImage: {
+    opacity: 0.3,
+  },
   container: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'rgba(10, 42, 10, 0.85)',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 60,
