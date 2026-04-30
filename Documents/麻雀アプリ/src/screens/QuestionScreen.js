@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, StatusBar,
+  ScrollView, KeyboardAvoidingView, Platform, StatusBar, Image, Dimensions,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { tapMedium, tapLight, tapHeavy, notifyWarning } from '../utils/haptics';
 import { generateQuestion } from '../logic/handGenerator';
-import { tileEmoji, tileLabel, windLabel, roundLabel } from '../logic/tiles';
+import { tileEmoji, tileLabel, windLabel, roundLabel, sortTiles, getTileColor, getTileImage } from '../logic/tiles';
 
 const COLORS = {
   bg: '#0a2a0a',
@@ -21,9 +22,14 @@ const COLORS = {
 };
 
 function TileBox({ tileObj, isWin }) {
+  const image = getTileImage(tileObj);
   return (
     <View style={[styles.tileBox, isWin && styles.tileBoxWin]}>
-      <Text style={styles.tileEmoji}>{tileEmoji(tileObj)}</Text>
+      <Image
+        source={image}
+        style={styles.tileImage}
+        resizeMode="contain"
+      />
     </View>
   );
 }
@@ -45,6 +51,21 @@ function MentsuRow({ m, winTile }) {
         />
       ))}
       {m.open && <Text style={styles.openMark}>開</Text>}
+    </View>
+  );
+}
+
+function SortedTileDisplay({ tiles, winTile }) {
+  const sorted = sortTiles(tiles);
+  return (
+    <View style={styles.tileRow}>
+      {sorted.map((t, i) => (
+        <TileBox
+          key={i}
+          tileObj={t}
+          isWin={winTile && t.suit === winTile.suit && t.num === winTile.num}
+        />
+      ))}
     </View>
   );
 }
@@ -74,14 +95,20 @@ export default function QuestionScreen({ navigation, route }) {
     setScoreInput('');
   }, [gameMode]);
 
-  useEffect(() => { loadQuestion(); }, [loadQuestion]);
+  useEffect(() => {
+    loadQuestion();
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => {});
+    return () => {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT).catch(() => {});
+    };
+  }, [loadQuestion]);
 
   const handleSubmit = () => {
     if (!fuInput || !hanInput || !scoreInput) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      notifyWarning();
       return;
     }
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    tapHeavy();
     const userFu = parseInt(fuInput, 10);
     const userHan = parseInt(hanInput, 10);
     const userScore = parseInt(scoreInput, 10);
@@ -161,33 +188,24 @@ export default function QuestionScreen({ navigation, route }) {
           {hand.isChiitoitsu ? (
             <View>
               <Text style={styles.chiitoitsuLabel}>七対子</Text>
-              <View style={styles.chiitoitsuGrid}>
-                {hand.chiitoitsuPairs.map((t, i) => (
-                  <View key={i} style={styles.chiitoitsuPair}>
-                    <TileBox tileObj={t} isWin={i === hand.chiitoitsuPairs.length - 1} />
-                    <TileBox tileObj={t} isWin={false} />
-                  </View>
-                ))}
-              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <SortedTileDisplay
+                  tiles={hand.chiitoitsuPairs.flatMap(t => [t, t])}
+                  winTile={hand.winTile}
+                />
+              </ScrollView>
             </View>
           ) : (
-            <View style={styles.handGrid}>
-              {hand.mentsu.map((m, i) => (
-                <MentsuRow key={i} m={m} winTile={hand.winTile} />
-              ))}
-              {/* Pair */}
-              <View style={styles.mentsuRow}>
-                <TileBox
-                  tileObj={hand.pair}
-                  isWin={hand.waitType === 'tanki'}
-                />
-                <TileBox
-                  tileObj={hand.pair}
-                  isWin={false}
-                />
-                <Text style={styles.pairLabel}>雀頭</Text>
-              </View>
-            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <SortedTileDisplay
+                tiles={[
+                  ...hand.mentsu.flatMap(m => m.tiles),
+                  hand.pair,
+                  hand.pair,
+                ]}
+                winTile={hand.winTile}
+              />
+            </ScrollView>
           )}
 
           <View style={styles.winTileRow}>
@@ -256,7 +274,7 @@ export default function QuestionScreen({ navigation, route }) {
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            tapLight();
             navigation.navigate('GameMode');
           }}
         >
@@ -319,39 +337,37 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     letterSpacing: 2,
   },
-  handGrid: { gap: 8 },
+  handRow: { flexDirection: 'row', gap: 8, paddingRight: 16 },
   mentsuRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    flexWrap: 'wrap',
   },
   tileBox: {
-    width: 38,
-    height: 50,
-    backgroundColor: '#f5f0e8',
-    borderRadius: 5,
+    width: Dimensions.get('screen').width > 700 ? 48 : 75,
+    height: Dimensions.get('screen').width > 700 ? 70 : 110,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#888',
+    marginHorizontal: 2,
   },
   tileBoxWin: {
-    backgroundColor: '#fff3c0',
+    borderWidth: 4,
     borderColor: COLORS.gold,
-    borderWidth: 2,
+    borderRadius: 4,
   },
-  tileEmoji: { fontSize: 24 },
+  tileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  tileRow: { flexDirection: 'row', gap: 0, paddingRight: 16 },
   openMark: {
-    color: COLORS.red,
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginLeft: 2,
+    display: 'none',
   },
   pairLabel: { color: COLORS.dimWhite, fontSize: 11, marginLeft: 4 },
   chiitoitsuLabel: { color: COLORS.dimWhite, fontSize: 13, marginBottom: 8 },
-  chiitoitsuGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chiitoitsuPair: { flexDirection: 'row', gap: 2 },
+  chiitoitsuRow: { flexDirection: 'row', gap: 2, paddingRight: 16 },
+  chiitoitsuPair: { flexDirection: 'row', gap: 0 },
   winTileRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,112 +1,14 @@
 import { isTerminalOrHonor, isDragon, isWind, isSimple, isTerminal, tilesEqual, tileLabel, isGreen, tile } from './tiles';
-
-function roundUpTo10(n) {
-  return Math.ceil(n / 10) * 10;
-}
+import { fuCalculationRules, calculateFuBreakdown } from './fuData';
+import { yakuData } from './yakuData';
 
 function roundUpTo100(n) {
   return Math.ceil(n / 100) * 100;
 }
 
-// Determines if any tile in mentsu is terminal or honor
-function mentsuHasTermOrHonor(m) {
-  return m.tiles.some(t => isTerminalOrHonor(t));
-}
-
-function getPairFu(pairTile, env) {
-  if (isDragon(pairTile)) return 2;
-  if (isWind(pairTile)) {
-    const isSeat = pairTile.num === env.seatWind;
-    const isRound = pairTile.num === env.round;
-    if (isSeat && isRound) return 4; // double wind
-    if (isSeat || isRound) return 2;
-  }
-  return 0;
-}
-
 export function calculateFu(hand) {
-  const { mentsu, pair, winTile, waitType, tsumo, environment, yaku } = hand;
-  const isChiitoitsu = yaku && yaku.some(y => y.id === 'chiitoitsu');
-
-  if (isChiitoitsu) {
-    return { fu: 25, breakdown: ['七対子: 固定25符'] };
-  }
-
-  const breakdown = [];
-  let fu = 20;
-  breakdown.push('基本符: 20符');
-
-  const isClosed = mentsu.every(m => !m.open);
-  const hasPinfu = yaku && yaku.some(y => y.id === 'pinfu');
-
-  if (!tsumo && isClosed && !hasPinfu) {
-    fu += 10;
-    breakdown.push('門前加符: 10符');
-  }
-
-  if (tsumo && !hasPinfu) {
-    fu += 2;
-    breakdown.push('ツモ: 2符');
-  }
-
-  for (const m of mentsu) {
-    const termOrHonor = mentsuHasTermOrHonor(m);
-    const isWinningKoutsu = m.type === 'tri' &&
-      waitType === 'shanpon' &&
-      m.tiles.some(t => tilesEqual(t, winTile));
-
-    let mFu = 0;
-    if (m.type === 'seq') {
-      mFu = 0;
-    } else if (m.type === 'tri') {
-      if (isWinningKoutsu && !tsumo) {
-        // Shanpon ron: treated as minkou
-        mFu = termOrHonor ? 4 : 2;
-        breakdown.push(`${m.tiles.map(tileLabel).join('')}(シャンポン明刻): ${mFu}符`);
-      } else if (m.open) {
-        mFu = termOrHonor ? 4 : 2;
-        breakdown.push(`${m.tiles.map(tileLabel).join('')}(明刻): ${mFu}符`);
-      } else {
-        mFu = termOrHonor ? 8 : 4;
-        breakdown.push(`${m.tiles.map(tileLabel).join('')}(暗刻): ${mFu}符`);
-      }
-    } else if (m.type === 'kan') {
-      if (m.open) {
-        mFu = termOrHonor ? 16 : 8;
-        breakdown.push(`${m.tiles.map(tileLabel).join('')}(明槓): ${mFu}符`);
-      } else {
-        mFu = termOrHonor ? 32 : 16;
-        breakdown.push(`${m.tiles.map(tileLabel).join('')}(暗槓): ${mFu}符`);
-      }
-    }
-    fu += mFu;
-  }
-
-  const pairFu = getPairFu(pair, environment);
-  if (pairFu > 0) {
-    breakdown.push(`雀頭${tileLabel(pair)}(${pairFu === 4 ? 'ダブ東/西' : '役牌'}): ${pairFu}符`);
-    fu += pairFu;
-  }
-
-  const waitFuMap = { kanchan: 2, penchan: 2, tanki: 2, ryanmen: 0, shanpon: 0 };
-  const waitFuLabels = { kanchan: '嵌張待ち', penchan: '辺張待ち', tanki: '単騎待ち' };
-  const waitFu = waitFuMap[waitType] || 0;
-  if (waitFu > 0) {
-    breakdown.push(`${waitFuLabels[waitType]}: ${waitFu}符`);
-    fu += waitFu;
-  }
-
-  if (hasPinfu) {
-    fu = tsumo ? 20 : 30;
-    return { fu, breakdown: ['平和: ' + (tsumo ? '20符固定' : '30符固定')] };
-  }
-
-  const finalFu = roundUpTo10(fu);
-  if (finalFu !== fu) {
-    breakdown.push(`切り上げ: ${fu}符 → ${finalFu}符`);
-  }
-
-  return { fu: finalFu, breakdown };
+  // Use fuData.js for calculation based on fu_calculation.md
+  return calculateFuBreakdown(hand);
 }
 
 export function calculateHan(hand) {
