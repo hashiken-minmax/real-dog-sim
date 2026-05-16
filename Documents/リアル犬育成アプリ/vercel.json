@@ -1,3 +1,6 @@
 {
-  "version": 2
+  "version": 2,
+  "framework": null,
+  "buildCommand": "echo 'serving prebuilt public/ (run npm run build:web locally to update)'",
+  "outputDirectory": "public"
 }
