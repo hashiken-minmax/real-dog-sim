@@ -7,7 +7,8 @@
   "build": "next build",
   "start": "next start",
   "expo-start": "expo start",
-  "expo-web": "expo start --web"
+  "expo-web": "expo start --web",
+  "build:web": "node build-web.js"
 },
   "dependencies": {
     "next": "^14.0.0",
