@@ -28,6 +28,27 @@ import { StatusBar } from 'expo-status-bar';
 const SoundManager = {
   _bgm: null as HTMLAudioElement | null,
   _bgmSrc: null as any,
+  // スマホブラウザは初回ユーザー操作までaudioの自動再生をブロックするため、
+  // 再生したいBGMを保留し、最初のタップ等で再生し直す。
+  _pending: null as null | { src: any; volume: number },
+  _unlockBound: false,
+
+  /** 初回ユーザー操作で保留中のBGMを再生するリスナを一度だけ登録 */
+  _bindUnlock(): void {
+    if (this._unlockBound || typeof window === 'undefined') return;
+    this._unlockBound = true;
+    const handler = () => {
+      if (this._bgm && this._bgm.paused) {
+        this._bgm.play().catch(() => {});
+      } else if (this._pending) {
+        const p = this._pending;
+        this.playBgm(p.src, p.volume);
+      }
+    };
+    ['pointerdown', 'touchend', 'mousedown', 'keydown'].forEach(ev =>
+      (window as any).addEventListener(ev, handler, { passive: true })
+    );
+  },
 
   /** require()の結果(数値/オブジェクト/文字列)をURLに変換する */
   _resolveUri(src: any): string {
@@ -53,18 +74,26 @@ const SoundManager = {
     const vol = Math.max(0, Math.min(1, volume / 100));
     if (this._bgmSrc === src && this._bgm && !this._bgm.paused) {
       this._bgm.volume = vol;
+      this._pending = { src, volume };
       return;
     }
     this.stopBgm();
+    this._pending = { src, volume };
     try {
       const uri = this._resolveUri(src);
       const a = new (window as any).Audio(uri);
       a.loop = true;
       a.volume = vol;
-      a.play().catch(() => {});
       this._bgm = a;
       this._bgmSrc = src;
-    } catch(_e) {}
+      const pr = a.play();
+      // 自動再生がブロックされた場合は初回操作で再生し直す
+      if (pr && typeof pr.catch === 'function') {
+        pr.catch(() => { this._bindUnlock(); });
+      }
+    } catch(_e) {
+      this._bindUnlock();
+    }
   },
 
   stopBgm(): void {
@@ -74,6 +103,7 @@ const SoundManager = {
       this._bgm = null;
     }
     this._bgmSrc = null;
+    this._pending = null;
   },
 
   setBgmVolume(volume: number): void {
@@ -6749,7 +6779,7 @@ export default function App(){
             {/* 散歩 */}
             <TouchableOpacity
               style={{flex:1,alignItems:'center',paddingVertical:2}}
-              onPress={dog.walkingTicksLeft>0||isNight||isActionLocked||dog.abilities.physical.stamina<WALK_STAMINA_COST?undefined:walk}
+              onPress={dog.walkingTicksLeft>0||isNight||isActionLocked||dog.abilities.physical.stamina<WALK_STAMINA_COST?undefined:()=>{setActiveTab(null);walk();}}
               disabled={dog.walkingTicksLeft>0||isNight||isActionLocked||dog.abilities.physical.stamina<WALK_STAMINA_COST}
             >
               <View style={{width:30,height:30,borderRadius:8,alignItems:'center',justifyContent:'center',
