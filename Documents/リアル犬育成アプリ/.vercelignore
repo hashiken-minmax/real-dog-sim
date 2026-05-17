@@ -9,3 +9,8 @@ dist
 .expo
 .next
 *.log
+api
+api_consume-gold.js
+api_create-checkout-session.js
+api_get-gold-balance.js
+api_webhook.js
