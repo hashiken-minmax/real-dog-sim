@@ -3804,7 +3804,10 @@ export default function App(){
       return;
     }
     switch (screen) {
-      case 'title': case 'prologue': case 'nameEntry':
+      case 'prologue':
+        // プロローグ中はBGMなし。タイトル画面遷移時に再生開始する
+        SoundManager.stopBgm(); break;
+      case 'title': case 'nameEntry':
       case 'settings': case 'collection': case 'familyTree': case 'puppySelect':
         SoundManager.playBgm(SND_BGM_TOP, vol); break;
       case 'main': case 'closet': case 'shop': {
@@ -6419,7 +6422,7 @@ export default function App(){
             <TouchableOpacity activeOpacity={0.9} onPress={()=>openTab(activeTab === 'care' ? null : 'care')}>
               <Image
                 source={getDogImage(dog, dogImageOverride)}
-                style={{width:220,height:220,backgroundColor:'transparent'}}
+                style={{width:220,height:220,backgroundColor:'transparent',transform:[{translateY:60}]}}
                 resizeMode="contain"
               />
             </TouchableOpacity>
