@@ -1,6 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "echo 'serving prebuilt public/ (run npm run build:web locally to update)'",
+  "installCommand": "echo 'skip install - serving prebuilt static files'",
+  "buildCommand": "echo 'skip build - serving prebuilt public/ (run npm run build:web locally to update)'",
   "outputDirectory": "public"
 }
